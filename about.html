@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - IbadahVibes</title>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <!-- AOS for Animations -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #d1fae5, #e0e7ff);
+            transition: all 0.5s ease;
+            overflow-x: hidden;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, #a9bd83 0%, #6b8e4e 100%);
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar a {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+        }
+        .sidebar a:hover {
+            transform: translateX(12px);
+            background: #fef6bf;
+            color: #1e3a8a;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 16px;
+        }
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        .dark-mode {
+            background: linear-gradient(135deg, #1f2937, #374151);
+            color: #e5e7eb;
+        }
+        .dark-mode .card {
+            background: rgba(31, 41, 55, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .dark-mode .sidebar, .dark-mode .footer {
+            background: #1f2937;
+        }
+        .dark-mode .btn-dark-mode i {
+            color: #facc15;
+        }
+        .social-icons a {
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+        .social-icons a:hover {
+            transform: scale(1.3) rotate(10deg);
+            color: #fef6bf;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+        .btn-cta {
+            background: linear-gradient(45deg, #10b981, #34d399);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-cta:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        .highlight-text {
+            background: linear-gradient(90deg, #34d399, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex">
+        <!-- Sidebar -->
+        <nav class="sidebar fixed w-64 md:w-80 min-h-screen p-4 text-white shadow-lg z-50">
+            <header class="text-center mb-6">
+                <h3 class="text-2xl font-bold animate-pulse" data-aos="zoom-in">IbadahVibes</h3>
+            </header>
+            <ul class="list-unstyled space-y-2">
+                <li data-aos="fade-right" data-aos-delay="100">
+                    <a href="home.html" class="flex items-center p-3 rounded-lg">
+                        <i class="fa-solid fa-kaaba mr-2"></i> Sholat Wajib
+                    </a>
+                </li>
+                <li data-aos="fade-right" data-aos-delay="200">
+                    <a href="sunnah.html" class="flex items-center p-3 rounded-lg">
+                        <i class="fas fa-mosque mr-2"></i> Sholat Sunnah
+                    </a>
+                </li>
+                <li data-aos="fade-right" data-aos-delay="300">
+                    <a href="ibadahtracker.html" class="flex items-center p-3 rounded-lg">
+                        <i class="fa-solid fa-book-quran mr-2"></i> Ibadah Tracker
+                    </a>
+                </li>
+                <li data-aos="fade-right" data-aos-delay="400">
+                    <a href="quote.html" class="flex items-center p-3 rounded-lg">
+                        <i class="fa-solid fa-quote-right mr-2"></i> Quotes Gaul
+                    </a>
+                </li>
+                <li data-aos="fade-right" data-aos-delay="500">
+                    <a href="about.html" class="flex items-center p-3 rounded-lg bg-fef6bf text-264653">
+                        <i class="fa-solid fa-address-card mr-2"></i> About Us
+                    </a>
+                </li>
+            </ul>
+            <div class="mt-auto text-center">
+                <button class="btn bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full transition-transform hover:scale-105">
+                    <a href="index.html" class="text-white no-underline">Peace Out ✌️</a>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="container-fluid p-6 md:ml-80">
+            <header class="flex justify-between items-center mb-6">
+                <button class="btn text-2xl md:hidden hover:text-green-500 transition-colors" onclick="toggleSidebar()">☰</button>
+                <h1 class="text-3xl md:text-4xl font-bold highlight-text" data-aos="fade-up">Yuk, Kenalan Sama IbadahVibes!</h1>
+                <button id="darkModeToggle" class="btn btn-dark-mode px-4 py-2 rounded-full bg-gray-800 text-white hover:bg-gray-700 transition-transform hover:scale-105">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </header>
+
+            <!-- About Section -->
+            <div class="card mb-6 p-6 rounded-xl" data-aos="fade-up" data-aos-delay="100">
+                <h4 class="text-xl font-semibold mb-4 highlight-text">Siapa Sih Verlang?</h4>
+                <p><strong>Verlang itu:</strong> Yang bikin website ini bro <em>lit</em>!</p>
+                <p><strong>Information:</strong> Semua konten di sini murni dari Al-Qur’an dan Hadis. No cap, pure halal vibes!</p>
+                <p><strong>Reminder:</strong> Jari-jemari lebih sering scroll gosip daripada scroll tasbih. Duh, besok dihisab jangan panic mode ya.</p>
+            </div>
+
+            <!-- Message from Creator -->
+            <div class="card mb-6 p-6 rounded-xl" data-aos="fade-up" data-aos-delay="200">
+                <h4 class="text-xl font-semibold mb-4 highlight-text">Pesan dari Bestie di Balik Layar</h4>
+                <p>Assalamu’alaikum, bro! Makasih udah mampir ke IbadahVibes, tempatnya ngegas ibadah biar makin on fire! Ini bukan cuma website, tapi sahabat yang ngingetin biar sholatmu nggak cuma wacana. Ayo, konsisten, biar hati adem dan surga nge-zoom ke kamu! Aku bikin ini biar kita bisa bareng-bareng ngejar akhirat vibes. Kalau nanti di akhirat aku ketinggalan, tolong doain temenmu ini biar bisa ngelaju bareng ke surga, ya! 😎</p>
+                <p class="mt-4">
+                    <a href="https://vcloudxofficial.xyz/group" class="inline-block btn-cta text-white px-6 py-3 rounded-full no-underline font-semibold">Gaspol Dukung Temenmu di Sini!</a>
+                </p>
+            </div>
+
+            <!-- Social Icons -->
+            <div class="text-center mb-6" data-aos="fade-up" data-aos-delay="300">
+                <h4 class="text-lg font-semibold mb-4">Stay Connected, Bro!</h4>
+                <div class="social-icons flex justify-center space-x-6">
+                    <a href="https://www.instagram.com/verlang11" target="_blank" class="text-gray-800 dark:text-gray-200"><i class="fab fa-instagram text-3xl"></i></a>
+                    <a href="https://www.tiktok.com/@verlangid" target="_blank" class="text-gray-800 dark:text-gray-200"><i class="fab fa-tiktok text-3xl"></i></a>
+                    <a href="https://www.youtube.com/@Erlangbey" target="_blank" class="text-gray-800 dark:text-gray-200"><i class="fab fa-youtube text-3xl"></i></a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="text-center py-4 bg-gray-900 text-white rounded-xl" data-aos="fade-up" data-aos-delay="400">
+                <p>&copy; verlangid 2022-2025. Halal Vibes Only! 🌟</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- AOS JS -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({ duration: 1000, easing: 'ease-in-out', once: true });
+
+        document.getElementById('darkModeToggle').onclick = function() {
+            document.body.classList.toggle('dark-mode');
+            const icon = this.querySelector('i');
+            icon.classList.toggle('fa-moon');
+            icon.classList.toggle('fa-sun');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        };
+
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('darkModeToggle').querySelector('i').classList.replace('fa-moon', 'fa-sun');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('active');
+        }
+    </script>
