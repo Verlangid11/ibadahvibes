@@ -1,0 +1,467 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juz 30 - Quran</title>
+    <!-- Font Awesome CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Amiri for Arabic, Poppins for modern look -->
+    <link href="https://fonts.googleapis.com/css2?family=Amiri&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* Gaya Dasar */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #e0e7ff, #c3e8d1);
+            transition: background 0.5s ease, color 0.5s ease;
+        }
+        .container-fluid {
+            display: flex;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        .col-md-3 {
+            flex: 0 0 25%;
+            max-width: 25%;
+        }
+        .col-md-9 {
+            flex: 0 0 75%;
+            max-width: 75%;
+            padding: 2rem;
+        }
+        /* Sidebar Styles */
+        .sidebar {
+            background: linear-gradient(180deg, #a9bd83 0%, #7a9b5e 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 2rem 1.5rem;
+            position: sticky;
+            top: 0;
+            transition: transform 0.4s ease-in-out, box-shadow 0.3s ease;
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        .sidebar header h3 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #fef6bf;
+            letter-spacing: 0.05em;
+        }
+        .sidebar ul {
+            list-style: none;
+        }
+        .sidebar ul li {
+            margin-bottom: 0.75rem;
+        }
+        .sidebar ul li a {
+            color: #ffffff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .sidebar ul li a:hover {
+            background: #fef6bf;
+            color: #264653;
+            transform: translateX(10px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar ul li a i {
+            margin-right: 0.75rem;
+            font-size: 1.25rem;
+        }
+        .sidebar .mt-auto {
+            margin-top: auto;
+            text-align: center;
+            padding-top: 1.5rem;
+        }
+        .sidebar .mt-auto a {
+            color: #fef6bf;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+        .sidebar .mt-auto a:hover {
+            background: #fef6bf;
+            color: #264653;
+            text-decoration: none;
+        }
+        /* Main Content Styles */
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            padding: 2rem;
+            transition: transform 0.4s ease, box-shadow 0.4s ease, opacity 0.6s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            background: none;
+            border: none;
+            padding: 0;
+            margin-bottom: 1.5rem;
+        }
+        .card-header i {
+            color: #718096;
+            margin-right: 0.75rem;
+            font-size: 1.25rem;
+        }
+        .card-header h5 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin: 0;
+        }
+        .arabic {
+            font-family: 'Amiri', serif;
+            font-size: 2rem;
+            color: #2d3748;
+            direction: rtl;
+            text-align: right;
+            margin-bottom: 0.75rem;
+        }
+        .latin {
+            color: #718096;
+            font-style: italic;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+        .translation {
+            color: #a0aec0;
+            font-size: 0.95rem;
+        }
+        /* Header Styles */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+        }
+        header h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+        header button {
+            padding: 0.75rem 1.5rem;
+            background: #2d3748;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        header button:hover {
+            background: #1a202c;
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        header .menu-btn {
+            display: none;
+            font-size: 1.5rem;
+            color: #718096;
+            background: none;
+            border: none;
+            transition: color 0.3s ease;
+        }
+        header .menu-btn:hover {
+            color: #2d3748;
+        }
+        /* Dark Mode */
+        .dark-mode {
+            background: linear-gradient(135deg, #1a1a1a, #2c2c2c);
+            color: #e2e8f0;
+        }
+        .dark-mode .sidebar {
+            background: #1c1c1c;
+        }
+        .dark-mode .card {
+            background: rgba(40, 40, 40, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+        }
+        .dark-mode .arabic {
+            color: #e2e8f0;
+        }
+        .dark-mode .card-header h5 {
+            color: #e2e8f0;
+        }
+        .dark-mode .card-header i {
+            color: #a0aec0;
+        }
+        .dark-mode header h1 {
+            color: #e2e8f0;
+        }
+        .dark-mode .latin {
+            color: #a0aec0;
+        }
+        .dark-mode .translation {
+            color: #718096;
+        }
+        .dark-mode .text-gray-600 {
+            color: #a0aec0;
+        }
+        /* Responsive */
+        @media (max-width: 767px) {
+            .col-md-3, .col-md-9 {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                width: 280px;
+                z-index: 1000;
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            header .menu-btn {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Sidebar -->
+        <nav class="col-md-3 sidebar">
+            <header>
+                <h3>Home</h3>
+            </header>
+            <ul class="list-unstyled">
+                <li><a href="home.html"><i class="fa-solid fa-kaaba"></i> Sholat Wajib</a></li>
+                <li><a href="sunnah.html"><i class="fas fa-mosque"></i> Sholat Sunnah</a></li>
+                <li><a href="ibadahtracker.html"><i class="fa-solid fa-book-quran"></i> Ibadah Tracker</a></li>
+                <li><a href="quote.html"><i class="fa-solid fa-quote-right"></i> Quotes Islami</a></li>
+                <li><a href="about.html"><i class="fa-solid fa-address-card"></i> About Us</a></li>
+            </ul>
+            <div class="mt-auto">
+                <a href="index.html">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <header>
+                <button class="menu-btn" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Juz 30</h1>
+                <button id="darkModeToggle">Toggle Dark Mode</button>
+            </header>
+
+            <!-- Surah Cards Container -->
+            <div id="surahContainer">
+                <p class="text-gray-600">Memuat data Juz 30...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Existing JavaScript for file loading
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+            return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row => row.some(filledCell));
+                    var headerRowIndex = filteredData.findIndex((row, index) =>
+                        row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                    );
+                    if (headerRowIndex === -1 || headerRowIndex > 25) {
+                        headerRowIndex = 0;
+                    }
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
+                }
+            }
+            return gk_fileData[filename] || "";
+        }
+
+        // Toggle Sidebar for Mobile
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        }
+
+        // Toggle Dark Mode
+        document.getElementById('darkModeToggle').onclick = function() {
+            document.body.classList.toggle('dark-mode');
+        };
+
+        // Fetch Surah Names
+        async function fetchSurahNames() {
+            try {
+                const response = await fetch('https://api.quran.com/api/v4/chapters?language=id');
+                const data = await response.json();
+                const surahNames = {};
+                data.chapters.forEach(chapter => {
+                    surahNames[chapter.id] = `${chapter.name_simple} (${chapter.id})`;
+                });
+                return surahNames;
+            } catch (error) {
+                console.error('Error fetching surah names:', error);
+                return {};
+            }
+        }
+
+        // Fetch Juz 30 Data from Quran.com API with Pagination
+        async function fetchJuz30() {
+            const container = document.getElementById('surahContainer');
+            try {
+                const surahNames = await fetchSurahNames();
+                let allVerses = [];
+                let page = 1;
+                let hasMore = true;
+
+                while (hasMore) {
+                    const response = await fetch(`https://api.quran.com/api/v4/verses/by_juz/30?language=en&translations=33&fields=text_uthmani,transliteration&page=${page}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    allVerses = allVerses.concat(data.verses);
+                    if (data.pagination.next_page) {
+                        page = data.pagination.next_page;
+                    } else {
+                        hasMore = false;
+                    }
+                }
+
+                const surahs = {};
+                allVerses.forEach(verse => {
+                    const surahNumber = verse.verse_key.split(':')[0];
+                    if (!surahs[surahNumber]) {
+                        surahs[surahNumber] = {
+                            name: surahNames[surahNumber] || `Surah ${surahNumber}`,
+                            verses: []
+                        };
+                    }
+                    surahs[surahNumber].verses.push({
+                        arabic: verse.text_uthmani,
+                        latin: verse.transliteration?.text || 'N/A',
+                        translation: verse.translations[0]?.text || 'N/A'
+                    });
+                });
+
+                container.innerHTML = '';
+
+                Object.values(surahs).forEach((surah, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <i class="fas fa-book-open"></i>
+                            <h5>${surah.name}</h5>
+                        </div>
+                        ${surah.verses.map(verse => `
+                            <div class="verse">
+                                <p class="arabic">${verse.arabic}</p>
+                                <p class="latin">${verse.latin}</p>
+                                <p class="translation">${verse.translation}</p>
+                            </div>
+                        `).join('')}
+                    `;
+                    container.appendChild(card);
+                    setTimeout(() => card.classList.add('visible'), index * 150);
+                });
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                container.innerHTML = `
+                    <p class="text-red-500">
+                        Gagal memuat data. Pastikan kamu menjalankan kode ini melalui server lokal (misalnya menggunakan Live Server di VSCode). 
+                        Error: ${error.message}. 
+                        Buka konsol browser (tekan F12) untuk detail lebih lanjut.
+                    </p>
+                `;
+            }
+        }
+
+        // Initialize
+        fetchJuz30();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93d6072bdf7553b6',t:'MTc0Njg0NDM2Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>
