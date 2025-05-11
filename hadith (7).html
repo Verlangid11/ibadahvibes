@@ -1,0 +1,866 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hadis - Pilih Koleksi - IbadahVibes</title>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <!-- AOS untuk Animasi -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- Google Fonts untuk Tipografi Arab dan Modern -->
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Hammer.js untuk Swipe -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+    <!-- Dynamics.js untuk Animasi Fisika -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dynamics.js/1.1.5/dynamics.min.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #1e3a8a;
+            height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: #e0e7ff;
+            transition: background 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        body.dark-mode {
+            background: #0f172a;
+        }
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        .particle {
+            position: absolute;
+            background: rgba(52, 211, 153, 0.5);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) scale(0); opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+        }
+        .hamburger {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            padding: 12px;
+            cursor: pointer;
+            transition: transform 0.4s ease, background 0.3s ease;
+        }
+        .hamburger:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .hamburger.active {
+            transform: rotate(360deg) scale(1.1);
+        }
+        .hamburger i {
+            font-size: 1.5rem;
+            color: #34d399;
+            transition: transform 0.4s ease;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 250px;
+            height: 100%;
+            background: linear-gradient(180deg, #4a7048, #2f4f2f);
+            transition: left 0.5s cubic-bezier(0.5, 0, 0.1, 1);
+            z-index: 90;
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        .sidebar.active {
+            left: 0;
+        }
+        .sidebar a {
+            transition: all 0.3s ease;
+        }
+        .sidebar a:hover {
+            transform: translateX(15px) scale(1.05);
+            background: #a3b18a;
+            color: #1a3c34;
+            box-shadow: 0 0 10px rgba(163, 177, 138, 0.5);
+        }
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+            transition: filter 0.5s ease;
+        }
+        .content.blur {
+            filter: blur(8px);
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #e0e7ff;
+            text-shadow: 0 0 15px rgba(52, 211, 153, 0.8), 0 0 30px rgba(52, 211, 153, 0.6);
+            animation: pulseNeon 2s ease-in-out infinite alternate;
+            transition: color 0.5s ease;
+        }
+        body.dark-mode h1 {
+            color: #d1e8ff;
+        }
+        @keyframes pulseNeon {
+            from { text-shadow: 0 0 15px rgba(52, 211, 153, 0.8), 0 0 30px rgba(52, 211, 153, 0.6); }
+            to { text-shadow: 0 0 25px rgba(52, 211, 153, 1), 0 0 40px rgba(52, 211, 153, 0.9); }
+        }
+        .collection-container {
+            position: relative;
+            width: 100%;
+            max-width: 350px;
+            height: 200px;
+            margin: 0 auto;
+            perspective: 2000px;
+        }
+        .collection-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(52, 211, 153, 0.4);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(52, 211, 153, 0.3);
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            opacity: 1;
+            transform-origin: center center -150px;
+            transition: transform 0.8s cubic-bezier(0.5, 0, 0.1, 1), opacity 0.8s ease, box-shadow 0.8s ease, filter 0.8s ease;
+        }
+        .collection-card:hover {
+            transform: scale(1.08) rotateY(5deg);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 30px rgba(52, 211, 153, 0.6);
+        }
+        .collection-card.prev {
+            opacity: 0;
+            transform: translateX(-120%) rotateY(-60deg) scale(0.9);
+            filter: blur(5px);
+        }
+        .collection-card.next {
+            opacity: 0;
+            transform: translateX(120%) rotateY(60deg) scale(0.9);
+            filter: blur(5px);
+        }
+        .collection-card i {
+            font-size: 2rem;
+            margin-right: 10px;
+            color: #34d399;
+            text-shadow: 0 0 15px rgba(52, 211, 153, 0.7);
+            transition: transform 0.3s ease;
+        }
+        .collection-card:hover i {
+            transform: scale(1.2);
+        }
+        .collection-card h3 {
+            font-size: 1.5rem;
+            color: #e0e7ff;
+            transition: color 0.3s ease;
+        }
+        .collection-card:hover h3 {
+            color: #5eead4;
+        }
+        .divider {
+            width: 100%;
+            max-width: 350px;
+            margin: 15px auto;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #34d399, #5eead4, #34d399, transparent);
+            position: relative;
+            animation: shimmer 3s infinite;
+            transition: background 0.5s ease;
+        }
+        body.dark-mode .divider {
+            background: linear-gradient(90deg, transparent, #5eead4, #34d399, #5eead4, transparent);
+        }
+        .divider::before {
+            content: '◆';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #34d399;
+            font-size: 1.2rem;
+            text-shadow: 0 0 15px rgba(52, 211, 153, 0.7);
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200px; }
+            100% { background-position: 200px; }
+        }
+        @keyframes pulseGlow {
+            0% { text-shadow: 0 0 10px rgba(52, 211, 153, 0.7); }
+            50% { text-shadow: 0 0 20px rgba(52, 211, 153, 1); }
+            100% { text-shadow: 0 0 10px rgba(52, 211, 153, 0.7); }
+        }
+        .hadith-container {
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+            overflow-y: auto;
+            max-height: calc(100vh - 400px);
+            transition: max-height 0.5s ease;
+        }
+        .hadith-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(52, 211, 153, 0.4);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), 0 0 20px rgba(52, 211, 153, 0.3);
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.5s ease;
+            animation: bounceInSmooth 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        body.dark-mode .hadith-card {
+            background: rgba(30, 40, 60, 0.8);
+            border: 1px solid rgba(94, 234, 212, 0.2);
+        }
+        .hadith-card:hover {
+            transform: translateY(-6px) rotateX(2deg);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 35px rgba(52, 211, 153, 0.6);
+        }
+        @keyframes bounceInSmooth {
+            0% { transform: translateY(20px) scale(0.95); opacity: 0; }
+            50% { transform: translateY(-8px) scale(1.02); opacity: 0.8; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .hadith-card i {
+            font-size: 1.2rem;
+            color: #34d399;
+            margin-right: 8px;
+            text-shadow: 0 0 15px rgba(52, 211, 153, 0.7);
+            transition: transform 0.3s ease;
+        }
+        .hadith-card:hover i {
+            transform: rotate(15deg) scale(1.3);
+        }
+        .hadith-card h3 {
+            font-size: 1.2rem;
+            color: #e0e7ff;
+            transition: color 0.3s ease;
+        }
+        body.dark-mode .hadith-card h3 {
+            color: #d1e8ff;
+        }
+        .hadith-card:hover h3 {
+            color: #5eead4;
+        }
+        .arabic-text {
+            font-family: 'Amiri', serif;
+            font-size: 1.2rem;
+            line-height: 1.8;
+            color: #e0e7ff;
+            direction: rtl;
+            text-align: right;
+            margin-bottom: 5px;
+            transition: color 0.5s ease;
+        }
+        body.dark-mode .arabic-text {
+            color: #d1e8ff;
+        }
+        .translation-text {
+            font-size: 1rem;
+            color: #a3bffa;
+            margin-top: 5px;
+            transition: color 0.5s ease;
+        }
+        body.dark-mode .translation-text {
+            color: #a3c9ff;
+        }
+        .loader {
+            border: 4px solid #e0e7ff;
+            border-top: 4px solid #34d399;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1.2s linear infinite;
+            margin: 15px auto;
+            transition: border-color 0.5s ease;
+        }
+        body.dark-mode .loader {
+            border-color: #d1e8ff;
+            border-top-color: #5eead4;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Responsivitas */
+        @media (max-width: 480px) {
+            .hamburger {
+                top: 15px;
+                left: 15px;
+                padding: 8px;
+            }
+            .hamburger i {
+                font-size: 1.2rem;
+            }
+            .sidebar {
+                width: 200px;
+                left: -200px;
+            }
+            .sidebar.active {
+                left: 0;
+            }
+            .collection-container, .hadith-container {
+                max-width: 90%;
+            }
+            .collection-container {
+                height: 150px;
+            }
+            .hadith-container {
+                max-height: calc(100vh - 300px);
+            }
+            h1 {
+                font-size: 1.6rem;
+            }
+            .collection-card {
+                padding: 10px;
+            }
+            .collection-card h3 {
+                font-size: 1.1rem;
+            }
+            .collection-card i {
+                font-size: 1.3rem;
+            }
+            .hadith-card {
+                padding: 8px;
+            }
+            .hadith-card h3 {
+                font-size: 0.9rem;
+            }
+            .arabic-text {
+                font-size: 0.9rem;
+            }
+            .translation-text {
+                font-size: 0.8rem;
+            }
+        }
+        @media (min-width: 481px) and (max-width: 768px) {
+            .collection-container, .hadith-container {
+                max-width: 400px;
+            }
+            .collection-container {
+                height: 180px;
+            }
+            .hadith-container {
+                max-height: calc(100vh - 350px);
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .collection-card h3 {
+                font-size: 1.3rem;
+            }
+            .hadith-card h3 {
+                font-size: 1.1rem;
+            }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .collection-container, .hadith-container {
+                max-width: 450px;
+            }
+            .collection-container {
+                height: 220px;
+            }
+            .hadith-container {
+                max-height: calc(100vh - 400px);
+            }
+            h1 {
+                font-size: 2.6rem;
+            }
+        }
+        @media (min-width: 1025px) {
+            .collection-container, .hadith-container {
+                max-width: 500px;
+            }
+            .collection-container {
+                height: 250px;
+            }
+            .hadith-container {
+                max-height: calc(100vh - 420px);
+            }
+            h1 {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <canvas class="particles"></canvas>
+    <!-- Tombol Hamburger -->
+    <div class="hamburger" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <!-- Sidebar -->
+    <nav class="sidebar p-4 text-white">
+        <header class="text-center mb-6">
+            <h3 class="text-2xl font-bold" data-aos="fade-down">IbadahVibes</h3>
+        </header>
+        <ul class="list-unstyled space-y-2">
+            <li data-aos="fade-right" data-aos-delay="100">
+                <a href="home.html" class="flex items-center p-3 rounded-lg">
+                    <i class="fa-solid fa-kaaba mr-1"></i> Sholat Wajib
+                </a>
+            </li>
+            <li data-aos="fade-right" data-aos-delay="200">
+                <a href="sunnah.html" class="flex items-center p-3 rounded-lg">
+                    <i class="fas fa-mosque mr-1"></i> Sholat Sunnah
+                </a>
+            </li>
+            <li data-aos="fade-right" data-aos-delay="300">
+                <a href="ibadahtracker.html" class="flex items-center p-3 rounded-lg">
+                    <i class="fa-solid fa-book-quran mr-1"></i> Ibadah Tracker
+                </a>
+            </li>
+            <li data-aos="fade-right" data-aos-delay="400">
+                <a href="quote.html" class="flex items-center p-3 rounded-lg">
+                    <i class="fa-solid fa-quote-right mr-1"></i> Quotes Gaul
+                </a>
+            </li>
+            <li data-aos="fade-right" data-aos-delay="500">
+                <a href="waktu-sholat.html" class="flex items-center p-3 rounded-lg">
+                    <i class="fa-solid fa-clock mr-1"></i> Waktu Sholat
+                </a>
+            </li>
+            <li data-aos="fade-right" data-aos-delay="600">
+                <a href="hadith.html" class="flex items-center p-3 rounded-lg bg-a3b18a text-1a3c34">
+                    <i class="fa-solid fa-book mr-1"></i> Hadis
+                </a>
+            </li>
+            <li data-aos="fade-right" data-aos-delay="700">
+                <a href="about.html" class="flex items-center p-3 rounded-lg">
+                    <i class="fa-solid fa-address-card mr-1"></i> Tentang Kami
+                </a>
+            </li>
+        </ul>
+        <div class="mt-auto text-center">
+            <button class="btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full">
+                <a href="index.html" class="text-white no-underline">Keluar</a>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Konten Utama -->
+    <div class="content">
+        <header data-aos="fade-down">
+            <h1>PILIH KOLEKSI HADIS</h1>
+            <button id="darkModeToggle" class="mt-4 px-3 py-1 bg-gray-800 text-white rounded-full hover:bg-gray-700">
+                <i class="fas fa-moon"></i>
+            </button>
+        </header>
+
+        <!-- Kontainer Koleksi Hadis -->
+        <div id="collection-container" class="collection-container"></div>
+
+        <!-- Garis Pemisah -->
+        <div class="divider"></div>
+
+        <!-- Kontainer Hadis -->
+        <div id="hadith-container" class="hadith-container"></div>
+
+        <div id="loader" class="loader hidden"></div>
+    </div>
+
+    <!-- AOS JS -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <!-- Hammer.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+    <script>
+        AOS.init({ duration: 800, once: true });
+
+        // Particle Background
+        const canvas = document.querySelector('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        function createParticles() {
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + 'vw';
+                particle.style.animationDuration = Math.random() * 10 + 10 + 's';
+                particle.style.width = Math.random() * 5 + 2 + 'px';
+                particle.style.height = particle.style.width;
+                canvas.appendChild(particle);
+            }
+        }
+        createParticles();
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        document.getElementById('darkModeToggle').onclick = function() {
+            document.body.classList.toggle('dark-mode');
+            const icon = this.querySelector('i');
+            icon.classList.toggle('fa-moon');
+            icon.classList.toggle('fa-sun');
+            const particles = document.querySelectorAll('.particle');
+            particles.forEach(p => p.style.background = document.body.classList.contains('dark-mode') ? 'rgba(94, 234, 212, 0.5)' : 'rgba(52, 211, 153, 0.5)');
+        };
+
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const hamburger = document.querySelector('.hamburger');
+            const content = document.querySelector('.content');
+            sidebar.classList.toggle('active');
+            hamburger.classList.toggle('active');
+            content.classList.toggle('blur');
+        }
+
+        const collections = [
+            { name: "Sahih Bukhari", file: "bukhari.json", icon: "fa-book-open" },
+            { name: "Sahih Muslim", file: "muslim.json", icon: "fa-mosque" },
+            { name: "Sunan Tirmidzi", file: "tirmidzi.json", icon: "fa-scroll" },
+            { name: "Sunan Abu Dawud", file: "abu-daud.json", icon: "fa-book" },
+            { name: "Sunan Nasai", file: "nasai.json", icon: "fa-book-quran" },
+            { name: "Sunan Ibnu Majah", file: "ibnu-majah.json", icon: "fa-pen" },
+            { name: "Sunan Darimi", file: "darimi.json", icon: "fa-bookmark" },
+            { name: "Muwatta Malik", file: "malik.json", icon: "fa-pray" },
+            { name: "Musnad Ahmad", file: "ahmad.json", icon: "fa-quran" }
+        ];
+
+        let currentIndex = 0;
+        let currentHadithIndex = 0;
+        let hadiths = [];
+        let isLoading = false;
+        let isPanning = false;
+        let panStartX = 0;
+        let panDeltaX = 0;
+        let panVelocity = 0;
+        let isCollectionSelected = false;
+
+        async function loadHadithsFromFile(fileName) {
+            try {
+                const response = await fetch(`books/${fileName}`);
+                const data = await response.json();
+                return data.map(hadith => ({
+                    collection: fileName.replace('.json', '').replace(/-/g, ' ').toUpperCase(),
+                    number: hadith.number,
+                    arab: hadith.arab,
+                    id: hadith.id
+                }));
+            } catch (error) {
+                console.error(`Error membaca file ${fileName}:`, error);
+                return [];
+            }
+        }
+
+        function displayCollection(index) {
+            const container = document.getElementById('collection-container');
+            container.innerHTML = '';
+
+            const collection = collections[index];
+            const collectionElement = document.createElement('div');
+            collectionElement.className = 'collection-card';
+            collectionElement.innerHTML = `
+                <i class="fas ${collection.icon}"></i>
+                <h3>${collection.name}</h3>
+            `;
+            collectionElement.addEventListener('click', () => {
+                if (!isPanning) {
+                    loadHadiths(collection.file);
+                    isCollectionSelected = true;
+                }
+            });
+            container.appendChild(collectionElement);
+        }
+
+        async function loadHadiths(fileName) {
+            if (isLoading) return;
+            isLoading = true;
+            document.getElementById('loader').classList.remove('hidden');
+            currentHadithIndex = 0;
+
+            const hadithContainer = document.getElementById('hadith-container');
+            hadithContainer.innerHTML = '';
+
+            try {
+                hadiths = await loadHadithsFromFile(fileName);
+                if (hadiths.length > 0) {
+                    displayAllHadiths();
+                } else {
+                    hadithContainer.innerHTML = '<p class="text-red-400 text-center">Tidak ada hadis yang ditemukan.</p>';
+                }
+            } catch (error) {
+                console.error('Error saat memuat hadis:', error);
+                hadithContainer.innerHTML = '<p class="text-red-400 text-center">Gagal memuat hadis.</p>';
+            }
+
+            isLoading = false;
+            document.getElementById('loader').classList.add('hidden');
+        }
+
+        function displayAllHadiths() {
+            const hadithContainer = document.getElementById('hadith-container');
+            hadithContainer.innerHTML = ''; // Kosongkan kontainer sebelum mengisi ulang
+
+            hadiths.forEach((hadith, index) => {
+                const hadithElement = document.createElement('div');
+                hadithElement.className = 'hadith-card';
+                hadithElement.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas fa-star"></i>
+                        <h3>${hadith.collection} - Hadis ${hadith.number}</h3>
+                    </div>
+                    <p class="arabic-text">${hadith.arab || 'Teks Arab tidak tersedia'}</p>
+                    <p class="translation-text">${hadith.id || 'Terjemahan tidak tersedia'}</p>
+                `;
+                hadithContainer.appendChild(hadithElement);
+            });
+        }
+
+        function updateCardTransform(deltaX) {
+            const card = document.querySelector('.collection-card') || document.querySelector('.hadith-card');
+            if (!card) return;
+
+            const cardWidth = card.offsetWidth;
+            const translateX = deltaX;
+            const rotateY = (deltaX / cardWidth) * 45;
+            const opacity = 1 - Math.abs(deltaX) / (cardWidth * 0.8);
+            const shadowIntensity = 1 - Math.abs(deltaX) / (cardWidth * 0.5);
+            const blur = Math.abs(deltaX) / (cardWidth * 0.2);
+
+            card.style.transform = `translateX(${translateX}px) rotateY(${rotateY}deg) scale(${1 - Math.abs(deltaX) / (cardWidth * 3)})`;
+            card.style.opacity = opacity;
+            card.style.filter = `blur(${blur}px)`;
+            card.style.boxShadow = `0 10px 25px rgba(0, 0, 0, ${0.3 * shadowIntensity}), 0 0 20px rgba(52, 211, 153, ${0.3 * shadowIntensity})`;
+        }
+
+        function snapCard(direction, velocity, isHadith = false) {
+            const card = document.querySelector(isHadith ? '.hadith-card' : '.collection-card');
+            if (!card) return;
+
+            const cardWidth = card.offsetWidth;
+            let targetTranslateX = 0;
+            let targetRotateY = 0;
+            let targetOpacity = 1;
+            let targetScale = 1;
+            let targetBlur = 0;
+
+            if (direction === 'left') {
+                targetTranslateX = -cardWidth * 1.2;
+                targetRotateY = -60;
+                targetOpacity = 0;
+                targetScale = 0.9;
+                targetBlur = 5;
+                if (isCollectionSelected && isHadith) {
+                    currentHadithIndex = currentHadithIndex < hadiths.length - 1 ? currentHadithIndex + 1 : 0;
+                    displayAllHadiths(); // Perbarui tampilan semua hadis
+                } else {
+                    currentIndex = currentIndex < collections.length - 1 ? currentIndex + 1 : 0;
+                    displayCollection(currentIndex);
+                }
+            } else if (direction === 'right') {
+                targetTranslateX = cardWidth * 1.2;
+                targetRotateY = 60;
+                targetOpacity = 0;
+                targetScale = 0.9;
+                targetBlur = 5;
+                if (isCollectionSelected && isHadith) {
+                    currentHadithIndex = currentHadithIndex > 0 ? currentHadithIndex - 1 : hadiths.length - 1;
+                    displayAllHadiths(); // Perbarui tampilan semua hadis
+                } else {
+                    currentIndex = currentIndex > 0 ? currentIndex - 1 : collections.length - 1;
+                    displayCollection(currentIndex);
+                }
+            }
+
+            dynamics.animate(card, {
+                translateX: targetTranslateX,
+                rotateY: targetRotateY,
+                opacity: targetOpacity,
+                scale: targetScale,
+                blur: targetBlur,
+                boxShadow: direction === 'reset' ? '0 10px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(52, 211, 153, 0.3)' : '0 5px 10px rgba(0, 0, 0, 0.2), 0 0 10px rgba(52, 211, 153, 0.1)'
+            }, {
+                type: dynamics.spring,
+                frequency: 200,
+                friction: 300,
+                duration: 800,
+                anticipationSize: 50,
+                anticipationStrength: 100,
+                complete: () => {
+                    if (direction !== 'reset' && !isHadith) {
+                        displayCollection(currentIndex);
+                    }
+                }
+            });
+
+            dynamics.animate(card, {
+                blur: targetBlur
+            }, {
+                type: dynamics.spring,
+                frequency: 200,
+                friction: 300,
+                duration: 800,
+                change: (value) => {
+                    card.style.filter = `blur(${value}px)`;
+                }
+            });
+        }
+
+        // Hammer.js untuk interaksi pan pada collection-container
+        const collectionContainer = document.getElementById('collection-container');
+        const hammerCollection = new Hammer(collectionContainer);
+        hammerCollection.get('pan').set({ direction: Hammer.DIRECTION_HORIZONTAL, threshold: 0 });
+
+        hammerCollection.on('panstart', (event) => {
+            isPanning = true;
+            panStartX = event.deltaX;
+            const card = document.querySelector('.collection-card');
+            if (card) card.style.transition = 'none';
+        });
+
+        hammerCollection.on('panmove', (event) => {
+            panDeltaX = event.deltaX - panStartX;
+            panVelocity = event.velocityX;
+            updateCardTransform(panDeltaX);
+        });
+
+        hammerCollection.on('panend', (event) => {
+            isPanning = false;
+            const card = document.querySelector('.collection-card');
+            if (!card) return;
+
+            const cardWidth = card.offsetWidth;
+            const threshold = cardWidth * 0.3;
+            const velocityThreshold = 0.5;
+
+            if (Math.abs(panDeltaX) > threshold || Math.abs(panVelocity) > velocityThreshold) {
+                if (panDeltaX < 0 || panVelocity < 0) {
+                    snapCard('left', panVelocity);
+                } else {
+                    snapCard('right', panVelocity);
+                }
+            } else {
+                snapCard('reset', panVelocity);
+            }
+            panDeltaX = 0;
+            panVelocity = 0;
+        });
+
+        // Hammer.js untuk interaksi pan pada hadith-container
+        const hadithContainer = document.getElementById('hadith-container');
+        const hammerHadith = new Hammer(hadithContainer);
+        hammerHadith.get('pan').set({ direction: Hammer.DIRECTION_HORIZONTAL, threshold: 0 });
+
+        hammerHadith.on('panstart', (event) => {
+            if (isCollectionSelected) {
+                isPanning = true;
+                panStartX = event.deltaX;
+                const card = document.querySelector('.hadith-card');
+                if (card) card.style.transition = 'none';
+            }
+        });
+
+        hammerHadith.on('panmove', (event) => {
+            if (isCollectionSelected) {
+                panDeltaX = event.deltaX - panStartX;
+                panVelocity = event.velocityX;
+                updateCardTransform(panDeltaX);
+            }
+        });
+
+        hammerHadith.on('panend', (event) => {
+            if (isCollectionSelected) {
+                isPanning = false;
+                const card = document.querySelector('.hadith-card');
+                if (!card) return;
+
+                const cardWidth = card.offsetWidth;
+                const threshold = cardWidth * 0.3;
+                const velocityThreshold = 0.5;
+
+                if (Math.abs(panDeltaX) > threshold || Math.abs(panVelocity) > velocityThreshold) {
+                    if (panDeltaX < 0 || panVelocity < 0) {
+                        snapCard('left', panVelocity, true);
+                    } else {
+                        snapCard('right', panVelocity, true);
+                    }
+                } else {
+                    snapCard('reset', panVelocity, true);
+                }
+                panDeltaX = 0;
+                panVelocity = 0;
+            }
+        });
+
+        // Muat koleksi pertama kali
+        displayCollection(currentIndex);
+    </script>
+</body>
+</html>
